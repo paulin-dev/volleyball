@@ -199,6 +199,14 @@ footer a{color:inherit}
       <span class="lbl">Phase de jeu</span>
       <div class="phases" id="phases"></div>
     </div>
+    <div class="group">
+      <span class="lbl">Ordre de départ</span>
+      <div class="seg" id="ordSeg">
+        <button data-d="R" id="ordR">R4 après P</button>
+        <button data-d="C" id="ordC">Central après P</button>
+      </div>
+      <small id="ordTxt" style="color:var(--muted);font-size:12px"></small>
+    </div>
     <div class="group" id="rmGroup">
       <span class="lbl">Réception</span>
       <div class="seg" id="rmSeg">
@@ -382,6 +390,29 @@ const RECV2 = [
   { 1: [6.6, 6.4], 2: [8.0, 1.0], 3: [6.0, 0.8], 4: [0.6, 3.4], 5: [2.6, 6.6], 6: [5.4, 8.4] },
   { 1: [6.4, 6.4], 2: [7.6, 0.8], 3: [1.8, 3.4], 4: [0.9, 1.0], 5: [0.9, 8.4], 6: [2.8, 6.4] }
 ];
+// ---- Ordre « central après passeur » : P1 (k0) … P2 (k5), zones 1..6
+// P1 : Pt en 4, R4 en 3, C en 2 → le R4 reçoit à droite et attaque en 2, le pointu en 4 (pas de croisement, comme l'ordre standard)
+// P6 : C, Pt, R4 → les trois collés à gauche, le R4 reçoit à gauche ; le pointu file à droite
+// P5 : R4, C, Pt déjà à leur poste ; le passeur (zone 5) doit rester derrière le R4 qui réceptionne
+// P4 : P, R4, C → passeur collé à gauche, le R4 reçoit juste à sa droite
+// P3 : C, P, R4 → les trois collés à gauche, le passeur traverse
+// P2 : R4, C, P déjà à leur poste
+const RECV_C = [
+  { 1: [8.6, 7.8], 2: [8.4, 1.0], 3: [7.0, 5.6], 4: [0.8, 1.0], 5: [1.8, 6.4], 6: [4.5, 6.6] },
+  { 1: [7.3, 6.4], 2: [2.3, 5.4], 3: [1.4, 1.2], 4: [0.6, 0.8], 5: [4.3, 6.6], 6: [5.8, 2.6] },
+  { 1: [7.3, 6.4], 2: [8.4, 1.0], 3: [4.6, 1.0], 4: [1.6, 4.4], 5: [3.0, 5.0], 6: [4.6, 6.6] },
+  { 1: [8.6, 8.4], 2: [6.4, 1.0], 3: [2.2, 5.4], 4: [0.55, 0.7], 5: [4.4, 6.6], 6: [7.2, 6.4] },
+  { 1: [7.4, 6.6], 2: [2.2, 5.6], 3: [1.4, 1.1], 4: [0.55, 0.7], 5: [4.6, 6.4], 6: [6.0, 8.5] },
+  { 1: [7.3, 6.4], 2: [7.6, 0.8], 3: [4.6, 1.0], 4: [1.8, 5.4], 5: [0.9, 8.4], 6: [4.4, 6.6] }
+];
+const RECV2_C = [
+  { 1: [8.6, 7.8], 2: [8.4, 1.0], 3: [6.6, 3.2], 4: [0.8, 1.0], 5: [2.4, 6.4], 6: [6.2, 6.6] },
+  { 1: [6.6, 6.4], 2: [2.3, 3.4], 3: [1.4, 1.2], 4: [0.6, 0.8], 5: [2.6, 6.6], 6: [4.4, 2.6] },
+  { 1: [6.6, 6.4], 2: [8.4, 1.0], 3: [4.6, 1.0], 4: [0.8, 3.0], 5: [2.4, 3.6], 6: [3.2, 6.6] },
+  { 1: [8.6, 8.4], 2: [6.4, 1.0], 3: [2.0, 3.2], 4: [0.55, 0.7], 5: [2.6, 6.6], 6: [6.4, 6.4] },
+  { 1: [6.4, 6.6], 2: [2.2, 3.2], 3: [1.4, 1.1], 4: [0.55, 0.7], 5: [2.6, 6.4], 6: [4.6, 8.4] },
+  { 1: [6.4, 6.4], 2: [7.6, 0.8], 3: [4.6, 1.0], 4: [0.8, 3.2], 5: [0.9, 8.4], 6: [2.8, 6.6] }
+];
 // Le 4-2 répète les 3 rotations « passeur avant » du 5-1 (P4, P3, P2), le 2e passeur tenant le rôle du pointu
 RECV['42'] = RECV['51'].slice(3, 6);
 const TARGET = [6.0, 0.7];
@@ -398,21 +429,27 @@ const SERVER_POS = [7.6, 10.1];
 const BENCH_POS = [10.05, 4.6];
 
 const isFront = z => z === 2 || z === 3 || z === 4;
-const idAt = (form, k, z) => LINEUP[form][(z - 1 + k) % 6];
+// Ordre « C » : le central suit le passeur (P, C, R4, Pt/P2, C, R4)
+const LINEUP_C = {
+  '51': ['P', 'Ca', 'R4a', 'Pt', 'Cb', 'R4b'],
+  '42': ['Pa', 'Ca', 'R4a', 'Pb', 'Cb', 'R4b']
+};
+const lineupOf = (form, ord) => (ord === 'C' ? LINEUP_C : LINEUP)[form];
+const idAt = (form, k, z, ord) => lineupOf(form, ord)[(z - 1 + k) % 6];
 
 // ctx : 'serve' (notre service) ou 'recv'
-function onCourt(form, k, lib, ctx) {
+function onCourt(form, k, lib, ctx, ord) {
   const map = {}; let bench = lib ? 'L' : null;
   for (let z = 1; z <= 6; z++) {
-    const id = idAt(form, k, z);
+    const id = idAt(form, k, z, ord);
     if (lib && ROLE[id] === 'C' && !isFront(z) && !(ctx === 'serve' && z === 1)) { map[z] = 'L'; bench = id; }
     else map[z] = id;
   }
   return { map, bench };
 }
-function frontSetter(form, k) {
+function frontSetter(form, k, ord) {
   if (form === '51') return 'P';
-  for (const z of [2, 3, 4]) { const id = idAt(form, k, z); if (ROLE[id] === 'P') return id; }
+  for (const z of [2, 3, 4]) { const id = idAt(form, k, z, ord); if (ROLE[id] === 'P') return id; }
 }
 function slotOf(id, z) {
   const r = ROLE[id];
@@ -421,17 +458,21 @@ function slotOf(id, z) {
 }
 
 // Renvoie { pos:{id:[x,y]}, zoneOf:{id:z}, bench, server, attacks:[{s,h}] }
-function compute(form, k, lib, phase, opp, rm = '3') {
+function compute(form, k, lib, phase, opp, rm = '3', ord = 'R') {
   const ctx = (phase === 'serve' || phase === 'def') ? 'serve' : 'recv';
-  const { map, bench } = onCourt(form, k, lib, ctx);
+  const { map, bench } = onCourt(form, k, lib, ctx, ord);
   const pos = {}, zoneOf = {}, attacks = [];
-  const setter = frontSetter(form, k);
+  const setter = frontSetter(form, k, ord);
   let server = null;
   for (let z = 1; z <= 6; z++) {
     const id = map[z]; zoneOf[id] = z;
     const r = ROLE[id];
     if (phase === 'base') pos[id] = BASE_Z[z];
-    else if (phase === 'recv') pos[id] = rm === '2' ? RECV2[form === '51' ? k : 3 + k % 3][z] : RECV[form][form === '51' ? k : k % 3][z];
+    else if (phase === 'recv') {
+      const kk = form === '51' ? k : 3 + k % 3;           // le 4-2 reprend les rotations « passeur avant »
+      const T = ord === 'C' ? (rm === '2' ? RECV2_C : RECV_C) : (rm === '2' ? RECV2 : RECV['51']);
+      pos[id] = T[kk][z];
+    }
     else if (phase === 'serve') {
       if (z === 1) { pos[id] = SERVER_POS; server = id; } else pos[id] = SLOT_BASE[slotOf(id, z)];
     } else if (phase === 'def') pos[id] = DEF[opp][slotOf(id, z)];
@@ -466,7 +507,7 @@ function checkOverlap(posByZone) {
   });
 }
 
-// = { LINEUP, ROLE, RECV, compute, checkOverlap, onCourt, idAt, frontSetter, slotOf };
+// = { LINEUP, LINEUP_C, ROLE, RECV, compute, checkOverlap, onCourt, idAt, frontSetter, slotOf };
 
 </script>
 <script>
@@ -484,7 +525,20 @@ const PH = [
   { id: 'recv', n: 'Réception', d: 'Service adverse' },
   { id: 'att', n: 'Attaque', d: 'Après la réception' }
 ];
-const S = { form: '51', lib: true, k: 0, phase: 'recv', opp: '4', follow: 'R4a', rules: false, rm: '3' };
+const S = { form: '51', lib: true, k: 0, phase: 'recv', opp: '4', follow: 'R4a', rules: false, rm: '3', ord: 'R' };
+const NOTES = {
+  R: { 0: 'P1 : le R4 avant reçoit à droite et attaque en 2, le pointu attaque en 4 (pas de croisement).', 1: 'Passeur arrière caché derrière le pointu, il monte à la frappe.', 2: 'Passeur arrière vers les 3 m, il pénètre à la frappe.',
+       3: 'Passeur et central collés à gauche : le R4 avant (zone 2) reçoit à gauche.', 4: 'Passeur au filet au centre, presque à la cible.', 5: 'Central collé à gauche : le R4 avant (zone 3) reçoit juste à sa droite.' },
+  C: { 0: 'P1 : le R4 avant (zone 3) reçoit à droite et attaque en 2, le pointu attaque en 4 (pas de croisement).', 1: 'Central, pointu et R4 collés à gauche : le R4 (zone 2) reçoit à gauche, le pointu file à droite.',
+       2: 'R4, central et pointu déjà à leur poste. Le passeur (zone 5) doit rester derrière le R4 qui réceptionne : il part de loin.', 3: 'Passeur collé à gauche : le R4 (zone 3) reçoit juste à sa droite.',
+       4: 'Central, passeur et R4 collés à gauche : le passeur traverse jusqu\'à la cible.', 5: 'R4, central et passeur déjà à leur poste.' }
+};
+function recvNote() {
+  const kk = S.form === '51' ? S.k : 3 + S.k % 3;
+  let n = NOTES[S.ord][kk];
+  if (S.form === '42') n = n.replace('le pointu', 'le passeur arrière');
+  return n + (S.form === '42' ? ' Le passeur arrière se cache comme un pointu.' : '');
+}
 let prevPos = {};
 let seqTimer = null;
 
@@ -569,7 +623,7 @@ function arrowPath(a, b, bend = .18) {
 }
 
 function render(animate = true) {
-  const c = compute(S.form, S.k, S.lib, S.phase, S.opp, S.rm);
+  const c = compute(S.form, S.k, S.lib, S.phase, S.opp, S.rm, S.ord);
   const onIds = Object.keys(c.pos);
   // titre / statut
   $('#title').innerHTML = `${rotLabel(S.k)} <small>${PH.find(p => p.id === S.phase).n}${S.form === '42' ? ' · ' + rotSub(S.k) : ''}</small>`;
@@ -590,7 +644,7 @@ function render(animate = true) {
     const g = toks[id];
     const on = onIds.includes(id);
     const isBench = c.bench === id;
-    const inForm = LINEUP[S.form].includes(id) || (id === 'L' && S.lib);
+    const inForm = lineupOf(S.form, S.ord).includes(id) || (id === 'L' && S.lib);
     if (!inForm) { g.style.opacity = 0; g.style.pointerEvents = 'none'; continue; }
     g.style.pointerEvents = '';
     let p = on ? c.pos[id] : BENCH_POS;
@@ -657,7 +711,7 @@ function render(animate = true) {
     });
   }
   // légende
-  const ids = [...LINEUP[S.form]]; if (S.lib) ids.push('L');
+  const ids = [...lineupOf(S.form, S.ord)]; if (S.lib) ids.push('L');
   const seen = new Set();
   $('#legend').innerHTML = ids.filter(id => { const r = ROLE[id]; if (seen.has(r)) return false; seen.add(r); return true; }).map(id => {
     const [bg, fg] = COLORS[ROLE[id]]; const nm = { P: S.form === '42' ? 'Passeurs (×2)' : 'Passeur', Pt: 'Pointu', R4: 'Réception-attaque (×2)', C: 'Centraux (×2)', L: 'Libéro' }[ROLE[id]];
@@ -677,7 +731,7 @@ function caption(c) {
       '4': 'Attaque en 4 adverse : contre à 2 (aile droite + central) sur la ligne. Avant gauche à 3 m (petite diagonale), arrière droit derrière le contre (feintes), arrière gauche en grande diagonale, le fond prend les déviations.',
       '3': 'Attaque au centre : contre du central, les ailiers reculent pour les feintes.',
       '2': 'Attaque en 2 adverse : contre à 2 (aile gauche + central) sur la ligne. Avant droit à 3 m, arrière gauche derrière le contre, arrière droit en grande diagonale, le fond prend les déviations.' }[S.opp],
-    recv: (S.rm === '2' ? `Réception à 2 (pro, service facile) : <b>${S.lib ? 'libéro' : 'central arrière'} + R4 arrière</b>, le R4 avant sort de la ligne pour attaquer. ` : `Réception à 3 : <b>les 2 R4 + ${S.lib ? 'libéro' : 'central arrière'}</b>. `) + `${S.form === '51' && S.k === 0 ? 'P1 : le R4 avant reçoit à droite et attaquera en 2, le pointu attaquera en 4 (pas de croisement).' : S.form === '51' ? (isFront(zS) ? 'Passeur avant, déjà au filet.' : 'Passeur arrière caché, il pénètre à la frappe.') : 'Le passeur avant reste au filet, le passeur arrière se cache comme un pointu.'}${(S.form === '42' && S.k % 3 === 0) || (S.form === '51' && S.k === 3) ? ' Passeur et central collés à gauche : le R4 avant (zone 2) ' + (S.rm === '2' ? 'se place' : 'peut recevoir') + ' à gauche.' : ''}`,
+    recv: (S.rm === '2' ? `Réception à 2 (pro, service facile) : <b>${S.lib ? 'libéro' : 'central arrière'} + R4 arrière</b>, le R4 avant sort de la ligne. ` : `Réception à 3 : <b>les 2 R4 + ${S.lib ? 'libéro' : 'central arrière'}</b>. `) + recvNote(),
     att: S.form === '51' ? (S.k === 0 ? 'P1 : R4 en 2, pointu en 4, central au centre + pipe. On permute après le premier échange.' : isFront(zS) ? 'Passeur avant : 2 attaquants avant (R4, central) + 2 arrières (pipe, attaque en 1).' : 'Passeur arrière : 3 attaquants avant + pipe du R4 arrière.') : 'Le passeur avant passe. 2 attaquants avant : R4 et central.'
   }[S.phase];
   $('#caption').innerHTML = `<span>${txt}</span>`;
@@ -692,9 +746,11 @@ function renderControls() {
   $('#phases').innerHTML = PH.map((p, i) => `<button data-p="${p.id}" aria-pressed="${p.id === S.phase}"><i>${i + 1}</i><span><b>${p.n}</b><small>${p.d}</small></span></button>`).join('');
   $('#oppGroup').style.display = S.phase === 'def' ? '' : 'none';
   document.querySelectorAll('#oppSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.o === S.opp));
+  document.querySelectorAll('#ordSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.d === S.ord));
+  $('#ordTxt').textContent = 'Zones 1→6 en P1 : ' + lineupOf(S.form, S.ord).map(id => LABEL(id)).join(' · ') + (S.ord === 'R' ? ' (le plus courant)' : '');
   document.querySelectorAll('#rmSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.r === S.rm));
   $('#rmGroup').style.display = (S.phase === 'recv' || S.phase === 'att') ? '' : 'none';
-  const ids = [...LINEUP[S.form]]; if (S.lib) ids.push('L');
+  const ids = [...lineupOf(S.form, S.ord)]; if (S.lib) ids.push('L');
   if (S.follow !== 'none' && !ids.includes(S.follow)) S.follow = 'R4a';
   const sel = $('#followSel');
   sel.innerHTML = '<option value="none">Personne</option>' + ids.map(id => `<option value="${id}" ${id === S.follow ? 'selected' : ''}>${NAMES[id]}</option>`).join('');
@@ -706,6 +762,7 @@ $('#libChk').addEventListener('change', e => { S.lib = e.target.checked; render(
 $('#rulesChk').addEventListener('change', e => { S.rules = e.target.checked; render(false); });
 $('#rots').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stopSeq(); S.k = +b.dataset.k; render(); });
 $('#phases').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stopSeq(); S.phase = b.dataset.p; render(); });
+$('#ordSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stopSeq(); S.ord = b.dataset.d; render(); newQuestion(); });
 $('#rmSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.rm = b.dataset.r; render(); });
 $('#oppSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.opp = b.dataset.o; render(); });
 $('#followSel').addEventListener('change', e => { S.follow = e.target.value; render(false); newQuestion(); });
@@ -745,7 +802,7 @@ $('#seqRecv').addEventListener('click', () => runSeq('recv'));
 function miniSVG(k) {
   const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '-1.2 -1.6 11.4 13'); s.setAttribute('aria-hidden', 'true');
   const L = buildCourt(s, { mini: true, pfx: 'g' + k });
-  const c = compute(S.form, k, S.lib, S.phase, S.opp, S.rm);
+  const c = compute(S.form, k, S.lib, S.phase, S.opp, S.rm, S.ord);
   const byZone = {};
   for (const id in c.pos) {
     byZone[c.zoneOf[id]] = c.pos[id];
@@ -758,7 +815,7 @@ function miniSVG(k) {
 }
 function renderGrid() {
   const box = $('#grid6'); box.innerHTML = '';
-  $('#gridSub').textContent = `${S.form === '51' ? '5-1' : '4-2'} · ${S.lib ? 'avec' : 'sans'} libéro · ${PH.find(p => p.id === S.phase).n}${S.phase === 'recv' ? ' à ' + S.rm : ''}`;
+  $('#gridSub').textContent = `${S.form === '51' ? '5-1' : '4-2'} · ordre ${S.ord === 'R' ? 'R4 après P' : 'central après P'} · ${S.lib ? 'avec' : 'sans'} libéro · ${PH.find(p => p.id === S.phase).n}${S.phase === 'recv' ? ' à ' + S.rm : ''}`;
   for (let k = 0; k < 6; k++) {
     const b = document.createElement('button'); b.className = 'mini'; b.setAttribute('aria-pressed', k === S.k); b.setAttribute('aria-label', 'Ouvrir ' + rotLabel(k));
     const { s, ok } = miniSVG(k);
@@ -793,7 +850,7 @@ function placeQuestion() {
   let k, ph, c, target, tries = 0;
   do {
     k = rnd(6); ph = phases[rnd(phases.length)];
-    c = compute(S.form, k, S.lib, ph, '4', S.rm);
+    c = compute(S.form, k, S.lib, ph, '4', S.rm, S.ord);
     const ids = Object.keys(c.pos);
     target = S.follow !== 'none' && ids.includes(S.follow) ? S.follow : ids[rnd(ids.length)];
     tries++;
@@ -845,7 +902,7 @@ function checkPlace() {
 }
 function faultQuestion() {
   const form = Math.random() < .5 ? '51' : '42', lib = Math.random() < .6, k = rnd(6);
-  const c = compute(form, k, lib, 'recv', '4');
+  const c = compute(form, k, lib, 'recv', '4', '3', S.ord);
   const byZone = {}, idByZone = {}; for (const id in c.pos) { byZone[c.zoneOf[id]] = [...c.pos[id]]; idByZone[c.zoneOf[id]] = id; }
   let fault = Math.random() < .55;
   if (fault) {
