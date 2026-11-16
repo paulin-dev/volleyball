@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Positions volley 6×6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Plan : un gymnase. Terrain bleu, zone libre orange, tableau de bord à gauche, terrain au centre, règles à droite. */
+:root{
+  --bg:#edf1f4; --surface:#ffffff; --ink:#15222c; --muted:#5a6b78; --line:#d3dce3; --accent:#d9622a; --accent-ink:#ffffff;
+  --ok:#1f9d63; --ko:#d63a3a;
+  --court:#2f6d96; --court-opp:#285c80; --free:#d97a3c; --cline:#f3f7fa;
+  --cP:#ffd23f; --tP:#2a2100; --cPt:#ff5a52; --tPt:#ffffff; --cR4:#ffffff; --tR4:#123450;
+  --cC:#38d996; --tC:#0b2a1d; --cL:#ff4fa8; --tL:#ffffff; --cOpp:#21262b;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d151b; --surface:#152029; --ink:#e4ecf1; --muted:#93a5b2; --line:#253440; --accent:#ff8547; --accent-ink:#1a0d05; --ok:#3ccf8a; --ko:#ff6464; color-scheme:dark;}}
+:root[data-theme="dark"]{--bg:#0d151b; --surface:#152029; --ink:#e4ecf1; --muted:#93a5b2; --line:#253440; --accent:#ff8547; --accent-ink:#1a0d05; --ok:#3ccf8a; --ko:#ff6464; color-scheme:dark;}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:1380px;margin:0 auto;padding:18px 20px 40px;display:flex;flex-direction:column;gap:22px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+header h1{font-size:40px;line-height:1;text-transform:uppercase}
+header h1 span{color:var(--accent)}
+.tag{display:inline-flex;gap:8px;flex-wrap:wrap}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap}
+
+.app{display:grid;grid-template-columns:290px minmax(0,1fr) 300px;gap:18px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:14px}
+.lbl{font-family:var(--display);text-transform:uppercase;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.group{display:flex;flex-direction:column;gap:7px}
+
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:7px 6px;cursor:pointer;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.big button{font-family:var(--display);font-size:22px;padding:4px}
+
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none}
+.switch input{appearance:none;width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;margin:0;flex:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(18px)}
+
+.rots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rots button{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:6px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.rots b{font-family:var(--display);font-size:21px}
+.rots small{font-size:10.5px;color:var(--muted)}
+.rots button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.rots button[aria-pressed="true"] small{color:inherit;opacity:.85}
+
+.phases{display:flex;flex-direction:column;gap:5px}
+.phases button{display:grid;grid-template-columns:26px 1fr;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:6px 9px;cursor:pointer}
+.phases button i{font-style:normal;font-family:var(--display);font-weight:700;font-size:15px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line)}
+.phases button span{display:flex;flex-direction:column;line-height:1.15}
+.phases button span b{font-weight:600}
+.phases button span small{color:var(--muted);font-size:11.5px}
+.phases button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.phases button[aria-pressed="true"] i{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.phases button[aria-pressed="true"] small{color:inherit;opacity:.75}
+
+select{width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--bg)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:8px 10px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.stage{display:flex;flex-direction:column;gap:10px;min-width:0}
+.court-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.court-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:2px 4px}
+.court-head h2{font-size:28px;line-height:1}
+.court-head h2 small{font-size:17px;color:var(--muted);font-weight:600;margin-left:6px}
+.status{font-size:13px;font-weight:600;padding:5px 11px;border-radius:99px;display:inline-flex;gap:6px;align-items:center;border:1px solid currentColor}
+.status.ok{color:var(--ok)} .status.ko{color:var(--ko)} .status.free{color:var(--accent)} .status.neutral{color:var(--muted)}
+svg.court{width:100%;height:auto;display:block;max-height:76vh;touch-action:none}
+.caption{display:flex;gap:10px;align-items:flex-start;padding:2px 6px 4px;color:var(--muted);font-size:14px;min-height:40px}
+.caption b{color:var(--ink)}
+.steps{display:flex;gap:6px;flex-wrap:wrap;padding:0 4px}
+.steps span{font-size:12px;padding:3px 9px;border-radius:99px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.steps span.cur{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.legend div{display:flex;align-items:center;gap:7px;font-size:13px}
+.dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 11px var(--display);flex:none;border:1.5px solid rgba(0,0,0,.25)}
+.rules{display:flex;flex-direction:column;gap:9px}
+.rule{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:start;font-size:13px;line-height:1.35}
+.rule svg{width:30px;height:30px}
+.rule b{display:block;font-size:13.5px}
+.rule a{color:var(--muted);font-size:11.5px}
+.ref{font-size:11px;color:var(--muted);font-family:var(--display);letter-spacing:.06em;text-transform:uppercase}
+
+/* SVG */
+.tok{transition:transform .85s cubic-bezier(.6,.05,.25,1),opacity .4s}
+.tok text,svg text{font-family:var(--display);font-weight:700;pointer-events:none}
+.tok .halo{fill:none;stroke:#ffe14d;stroke-width:.09;opacity:0}
+.tok.focus .halo{opacity:1;animation:pulse 1.6s ease-in-out infinite}
+.tok.dim{opacity:.45}
+.tok.out{opacity:.55}
+.tok .zb{transition:opacity .3s}
+.court.nozones .tok .zb{opacity:0}
+@keyframes pulse{50%{stroke-width:.18;opacity:.55}}
+.trail{fill:none;stroke:#fff;stroke-width:.06;stroke-dasharray:.18 .14;opacity:.85;animation:fadeT 2.6s ease forwards}
+.trail.focus{stroke:#ffe14d;stroke-width:.09;opacity:1}
+@keyframes fadeT{0%{opacity:0}15%{opacity:.9}80%{opacity:.8}100%{opacity:.35}}
+.attarrow{fill:none;stroke:#ffb347;stroke-width:.075;stroke-dasharray:.22 .12}
+.ruleline{stroke-width:.06;fill:none}
+.ruleline.ok{stroke:#7dffb9;stroke-dasharray:.12 .1}
+.ruleline.ko{stroke:#ff4d4d;stroke-width:.11}
+.fade-in{animation:fi .5s .7s both}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.dragme{cursor:grab}
+.dragme.dragging{transition:none;cursor:grabbing}
+@media (prefers-reduced-motion:reduce){.tok{transition:none}.trail,.fade-in{animation:none}.tok.focus .halo{animation:none}}
+
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sec-head h2{font-size:28px;text-transform:uppercase}
+.sec-head p{margin:0;color:var(--muted);font-size:14px}
+.grid6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.mini{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:left}
+.mini:hover{border-color:var(--ink)}
+.mini[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.mini svg{width:100%;height:auto;display:block}
+.mini .mt{display:flex;justify-content:space-between;align-items:center;padding:0 4px;font-size:12px;color:var(--muted)}
+.mini .mt b{font-family:var(--display);font-size:19px;color:var(--ink)}
+
+.quiz{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+.quiz .court-box{max-width:620px;width:100%;justify-self:center}
+.qprompt{font-size:17px;font-weight:600}
+.qprompt em{font-style:normal;color:var(--accent)}
+.feedback{min-height:44px;font-size:14px;padding:9px 11px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.feedback.ok{border-color:var(--ok);color:var(--ok)} .feedback.ko{border-color:var(--ko);color:var(--ko)}
+.score{display:flex;gap:10px}
+.score div{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center}
+.score b{display:block;font-family:var(--display);font-size:30px;line-height:1}
+.score small{color:var(--muted);font-size:12px}
+
+footer{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:6px}
+footer ol{margin:0;padding-left:18px;display:grid;grid-template-columns:1fr 1fr;gap:3px 24px}
+footer a{color:inherit}
+
+@media (max-width:1180px){
+  .app{grid-template-columns:270px minmax(0,1fr)}
+  .side{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1.4fr;gap:14px}
+  .grid6{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .stage{order:-1}
+  .side{grid-template-columns:1fr}
+  .quiz{grid-template-columns:1fr}
+  header h1{font-size:32px}
+  footer ol{grid-template-columns:1fr}
+}
+@media (max-width:460px){ .grid6{grid-template-columns:repeat(2,minmax(0,1fr))} .wrap{padding:14px 16px 30px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Positions volley <span>6×6</span></h1>
+  </div>
+  <div class="tag">
+    <span class="pill">Règles officielles FIVB 2025-2028</span>
+    <span class="pill">Appliquées par la FFvolley</span>
+    <span class="pill">← → rotations · 1-5 phases</span>
+  </div>
+</header>
+
+<div class="app">
+  <!-- Commandes -->
+  <section class="panel controls" aria-label="Réglages">
+    <div class="group">
+      <span class="lbl">Système</span>
+      <div class="seg big" id="formSeg">
+        <button id="f51" data-f="51" aria-pressed="true">5-1</button>
+        <button id="f42" data-f="42" aria-pressed="false">4-2</button>
+      </div>
+    </div>
+    <label class="switch" for="libChk"><span><b>Libéro</b> <small style="color:var(--muted)">remplace le central arrière</small></span><input type="checkbox" id="libChk" checked></label>
+    <div class="group">
+      <span class="lbl">Rotation</span>
+      <div class="rots" id="rots"></div>
+      <button class="btn" id="turnBtn" title="Faire tourner l'équipe (sens horaire)">↻ Tourner (gain du service)</button>
+    </div>
+    <div class="group">
+      <span class="lbl">Phase de jeu</span>
+      <div class="phases" id="phases"></div>
+    </div>
+    <div class="group" id="rmGroup">
+      <span class="lbl">Réception</span>
+      <div class="seg" id="rmSeg">
+        <button data-r="3" id="rm3">À 3 · standard</button>
+        <button data-r="2" id="rm2">À 2 · pro</button>
+      </div>
+    </div>
+    <div class="group" id="oppGroup">
+      <span class="lbl">Attaque adverse</span>
+      <div class="seg" id="oppSeg">
+        <button data-o="0" id="o0">Attente</button>
+        <button data-o="4" id="o4">Leur 4</button>
+        <button data-o="3" id="o3">Leur 3</button>
+        <button data-o="2" id="o2">Leur 2</button>
+      </div>
+    </div>
+    <div class="group">
+      <label class="lbl" for="followSel">Suivre un joueur</label>
+      <select id="followSel"></select>
+    </div>
+    <label class="switch" for="rulesChk"><span>Afficher les liens de chevauchement</span><input type="checkbox" id="rulesChk"></label>
+    <div class="group">
+      <span class="lbl">Enchaîner un échange</span>
+      <div class="btns">
+        <button class="btn primary" id="seqServe">▶ Notre service</button>
+        <button class="btn primary" id="seqRecv">▶ Service adverse</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Terrain -->
+  <section class="stage">
+    <div class="court-box">
+      <div class="court-head">
+        <h2 id="title">P1 <small>Réception</small></h2>
+        <span class="status ok" id="status">✓</span>
+      </div>
+      <svg class="court" id="court" viewBox="-1.7 -3.4 12.4 15" role="img" aria-label="Terrain de volley, notre camp en bas"></svg>
+      <div class="steps" id="steps" hidden></div>
+      <div class="caption" id="caption"></div>
+    </div>
+  </section>
+
+  <!-- Légende + règles -->
+  <aside class="side">
+    <section class="panel">
+      <span class="lbl">Postes</span>
+      <div class="legend" id="legend"></div>
+      <div style="font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center">
+        <svg width="22" height="22" viewBox="-1 -1 2 2"><circle r=".8" fill="#fff" stroke="#123450" stroke-width=".1"/><circle cx=".55" cy="-.55" r=".38" fill="#15222c"/><text x=".55" y="-.42" font-size=".5" fill="#fff" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700">4</text></svg>
+        petit chiffre = zone de rotation du joueur
+      </div>
+    </section>
+    <section class="panel">
+      <span class="lbl">Règles qui fixent les positions</span>
+      <div class="rules">
+        <div class="rule">
+          <svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="10" r="2.6" fill="currentColor"/><circle cx="15" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="10" r="2.6" fill="currentColor"/><circle cx="9" cy="21" r="2.6" fill="none" stroke="currentColor"/><circle cx="15" cy="21" r="2.6" fill="none" stroke="currentColor"/><circle cx="21" cy="21" r="2.6" fill="none" stroke="currentColor"/></svg>
+          <div><b>Réception : ordre obligatoire</b>Arrière derrière son avant (5↔4, 6↔3, 1↔2). Gauche/droite respectés dans chaque ligne. On juge les pieds au sol, à la frappe du service (FIVB/FFvolley). En FSGT 2025-26 : dès le lancer. <span class="ref">Règle 7.4</span></div>
+        </div>
+        <div class="rule">
+          <svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 20 L20 9 M15 9 h5 v5" fill="none" stroke="var(--accent)" stroke-width="2"/></svg>
+          <div><b>Notre service : placement libre</b>Depuis 2025, l'équipe au service se place où elle veut : chacun peut déjà être à son poste de défense. Le serveur frappe depuis la zone de service. <span class="ref">Règle 7.4 · 2025</span></div>
+        </div>
+        <div class="rule">
+          <svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M15 6 v9 l6 4" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          <div><b>Après la frappe : déplacement libre</b>Chacun file à son poste. <span class="ref">Règle 7.4.4</span></div>
+        </div>
+        <div class="rule">
+          <svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="11" fill="var(--cL)"/><text x="15" y="20" text-anchor="middle" font-size="14" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" fill="#fff">L</text></svg>
+          <div><b>Libéro</b>Remplace un arrière. Ne sert pas, ne contre pas, n'attaque pas balle au-dessus du filet. Passe en doigts dans sa zone avant : pas d'attaque au-dessus du filet derrière. <span class="ref">Règle 19.3</span></div>
+        </div>
+        <div class="rule">
+          <svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24" rx="3" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="12" x2="27" y2="12" stroke="currentColor" stroke-dasharray="2 2"/><path d="M15 23 V14" stroke="#ffb347" stroke-width="2.2" fill="none"/></svg>
+          <div><b>Attaque d'un arrière</b>Au-dessus du filet seulement en sautant derrière la ligne des 3 m. <span class="ref">Règle 13.2</span></div>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<section class="sec">
+  <div class="sec-head">
+    <h2>Les 6 rotations d'un coup d'œil</h2>
+    <p id="gridSub">Phase affichée · clique pour ouvrir</p>
+  </div>
+  <div class="grid6" id="grid6"></div>
+</section>
+
+<section class="sec">
+  <div class="sec-head">
+    <h2>Entraînement</h2>
+    <div class="seg" id="qmodeSeg" style="min-width:300px">
+      <button data-q="place" id="qPlace" aria-pressed="true">Place-toi</button>
+      <button data-q="fault" id="qFault" aria-pressed="false">Faute ou pas ?</button>
+    </div>
+  </div>
+  <div class="quiz">
+    <div class="court-box">
+      <svg class="court nozones" id="qcourt" viewBox="-1.7 -3.4 12.4 15" role="img" aria-label="Terrain d'entraînement"></svg>
+    </div>
+    <div class="panel">
+      <div class="qprompt" id="qprompt"></div>
+      <div class="feedback" id="qfb">Glisse ton jeton jaune entouré à sa place, puis valide.</div>
+      <div class="btns" id="qbtns"></div>
+      <div class="score">
+        <div><b id="qStreak">0</b><small>Série</small></div>
+        <div><b id="qGood">0/0</b><small>Réussites</small></div>
+        <div><b id="qBest">0</b><small>Record</small></div>
+      </div>
+      <p style="margin:0;font-size:12.5px;color:var(--muted)">Le système (5-1 / 4-2), le libéro et le joueur suivi viennent des réglages du haut.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <b style="color:var(--ink)">Sources</b>
+  <ol>
+    <li><a href="https://www.fivb.com/wp-content/uploads/2025/06/FIVB-Volleyball_Rules2025_2028-FR-v04.pdf">FIVB – Règles officielles 2025-2028 (FR) : 7.4, 7.5, 7.6, 13.2, 14.6, 19.3</a></li>
+    <li><a href="https://vbahk.org.hk/items/media/Refereeing/202528_Volleyball_Rules/VB/fivbvolleyball_rulesmodification20252028.pdf">FIVB – Tableau des modifications 2021-24 → 2025-28 (règle 7.4)</a></li>
+    <li><a href="https://extranet.ffvb.org/front/198-37-1-Arbitrage">FFvolley – Arbitrage : règles FIVB 2025-2028 en vigueur</a></li>
+    <li><a href="https://sport-u.com/wp-content/uploads/sites/15/2026/02/2025-2026_Reglement-Volleyball-U_D.pdf">FF Sport U – Règlement volley 2025-2026 (règlement FFVB-FIVB, 2 libéros max)</a></li>
+    <li><a href="https://volleyfsgt29n.com/regles-du-volley-ball/">FSGT 29 – Règles 2025-2026 (exemple de comité FSGT)</a></li>
+    <li><a href="https://www.vq.org.au/wp-content/uploads/2018/03/FIVB_DEV_Top_Volley_Manual_eng.pdf">FIVB – Top Volley Manual : réception à 3 (L + 2 R4), à 2 ou à 4, libéro en 5, pipe, cible passeur</a></li>
+    <li><a href="https://www.fivb.com/wp-content/uploads/2024/03/FIVB_Coach_Manual_EN.pdf">FIVB – Coaches Manual : systèmes 4-2 et 5-1</a></li>
+    <li><a href="https://volleystation.freshdesk.com/support/solutions/articles/103000356100-theory-of-volleyball">VolleyStation (scouting pro) – Rotations 1 à 6</a></li>
+    <li><a href="https://goldmedalsquared.com/?p=7900">Gold Medal Squared – Rotations 1 à 6, poste par poste</a></li>
+    <li><a href="https://volleycountry.com/?p=28097">Volley Country – Passeur en 4 : passeur et central collés à gauche</a></li>
+    <li><a href="https://www.volleyballireland.com/wp-content/uploads/2021/06/LTPD-6v6-Volley-Resource.pdf">Volleyball Ireland – 4-2 : passe depuis la position 2½</a></li>
+    <li><a href="https://www.volleyball.ca/uploads/Development/Coach/Skills/One_page_desc./ADV_DEV/FR/Blocking-Defense_Relation_for_2_Player_Block_for_e_module_skill_description_FR_aml_FINAL.pdf">Volleyball Canada – Relation contre / défense (FR)</a></li>
+    <li><a href="https://volleyball.ca/uploads/Development/Coach/Skills/One_page_desc./ADV_DEV/FR/Hitting_the_B_set_for_e_module_skill_description_APaml_FINAL.pdf">Volleyball Canada – Attaque B / pipe (FR)</a></li>
+    <li><a href="https://coachingvb.com/libero-5-6">CoachingVB – Libéro en 5 ou en 6</a></li>
+  </ol>
+  <span>Les règles fixent l'ordre et la légalité. Les règles fixent seulement l'ordre de rotation et sa légalité. Les placements sont les standards du haut niveau décrits par la FIVB et recoupés rotation par rotation : réception à 3 (2 R4 + libéro) ou à 2, libéro en 5, R4 arrière en 6, passeur ou pointu en 1, défense « 6 en retrait ». Le 4-2 reprend les rotations « passeur avant » du 5-1. Ton coach peut choisir une variante.</span>
+</footer>
+</div>
+
+<script>
+// ===== Données positions (mètres) : x 0→9 (gauche→droite face au filet), y 0→9 (filet→ligne de fond)
+const LINEUP = {
+  '51': ['P', 'R4a', 'Ca', 'Pt', 'R4b', 'Cb'],   // zones 1..6 en rotation 1 (P1)
+  '42': ['Pa', 'R4a', 'Ca', 'Pb', 'R4b', 'Cb']    // même ordre, le 2e passeur à la place du pointu
+};
+const ROLE = { P: 'P', Pa: 'P', Pb: 'P', Pt: 'Pt', R4a: 'R4', R4b: 'R4', Ca: 'C', Cb: 'C', L: 'L' };
+const NAMES = { P: 'Passeur', Pa: 'Passeur n°1', Pb: 'Passeur n°2', Pt: 'Pointu', R4a: 'R4 n°1', R4b: 'R4 n°2', Ca: 'Central n°1', Cb: 'Central n°2', L: 'Libéro' };
+const IDX = { R4a: '1', R4b: '2', Ca: '1', Cb: '2', Pa: '1', Pb: '2' };
+
+const BASE_Z = { 1: [7.5, 7.0], 2: [7.5, 1.8], 3: [4.5, 1.8], 4: [1.5, 1.8], 5: [1.5, 7.0], 6: [4.5, 7.0] };
+// Base « 6 en retrait » : ailiers arrière ~6 m du filet près des lignes, fond à ~1,5 m de la ligne de fond
+// FIVB (Top Volley) : arrières latéraux (5 et 1) à 6-7 m du filet, le 6 entre eux au fond
+const SLOT_BASE = { FL: [0.8, 0.9], FM: [4.5, 0.9], FR: [8.2, 0.9], BL: [1.0, 6.5], BM: [4.5, 7.8], BR: [8.0, 6.5] };
+const DEF = {
+  '0': SLOT_BASE,
+  // Volleyball Canada : contre à 2 sur la ligne ; avant opposé à 3 m (petite diago) ; arrière derrière le contre (feintes/ligne) ; grande diago ; fond (déviations)
+  '4': { FR: [7.9, 0.55], FM: [6.85, 0.55], FL: [2.0, 3.0], BR: [8.1, 4.8], BL: [1.1, 5.9], BM: [5.4, 8.4] },
+  '3': { FM: [4.5, 0.55], FL: [1.8, 2.8], FR: [7.2, 2.8], BL: [1.4, 6.0], BR: [7.6, 6.0], BM: [4.5, 8.3] },
+  '2': { FL: [1.1, 0.55], FM: [2.15, 0.55], FR: [7.0, 3.0], BL: [0.9, 4.8], BR: [7.9, 5.9], BM: [3.6, 8.4] }
+};
+const OPP = {
+  '4': { hit: [8.0, -1.0], shots: [[8.4, 8.6], [1.0, 6.2]] },
+  '3': { hit: [4.5, -0.9], shots: [[2.0, 8.2], [7.0, 8.2]] },
+  '2': { hit: [1.0, -1.0], shots: [[0.6, 8.6], [8.0, 6.2]] }
+};
+// Réception : index k (0..5 = P1, P6, P5, P4, P3, P2) puis zone 1..6 — vérifié vs Gold Medal Squared R1→R6
+const RECV = {
+  '51': [
+    { 1: [8.5, 7.6], 2: [7.2, 6.0], 3: [3.4, 1.0], 4: [1.2, 1.0], 5: [1.8, 6.2], 6: [4.5, 6.6] },
+    { 1: [7.4, 6.4], 2: [8.4, 0.9], 3: [6.4, 1.0], 4: [1.8, 5.6], 5: [4.3, 6.6], 6: [6.5, 2.3] },
+    { 1: [7.3, 6.4], 2: [8.4, 1.0], 3: [2.2, 5.6], 4: [0.9, 1.0], 5: [3.1, 2.8], 6: [4.6, 6.4] },
+    { 1: [8.6, 8.4], 2: [2.2, 5.6], 3: [1.4, 1.1], 4: [0.55, 0.7], 5: [4.6, 6.4], 6: [7.3, 6.6] },
+    { 1: [7.3, 6.4], 2: [8.0, 1.0], 3: [6.0, 0.8], 4: [1.8, 5.4], 5: [4.3, 6.6], 6: [6.0, 8.4] },
+    { 1: [7.3, 6.4], 2: [7.6, 0.8], 3: [2.2, 5.4], 4: [0.9, 1.0], 5: [0.9, 8.4], 6: [4.6, 6.4] }
+  ]
+};
+// Réception à 2 (FIVB Top Volley : sur service facile, le R4 avant sort de la ligne de réception) : libéro + R4 arrière
+const RECV2 = [
+  { 1: [8.5, 7.6], 2: [7.6, 3.4], 3: [3.4, 1.0], 4: [1.2, 1.0], 5: [2.4, 6.4], 6: [6.2, 6.6] },
+  { 1: [7.0, 6.4], 2: [8.4, 0.9], 3: [6.4, 1.0], 4: [0.6, 3.4], 5: [2.6, 6.6], 6: [6.5, 2.3] },
+  { 1: [6.4, 6.4], 2: [8.4, 1.0], 3: [1.6, 3.4], 4: [0.7, 1.0], 5: [2.4, 2.6], 6: [2.9, 6.4] },
+  { 1: [8.6, 8.4], 2: [2.1, 3.4], 3: [1.4, 1.1], 4: [0.55, 0.7], 5: [2.6, 6.4], 6: [6.4, 6.6] },
+  { 1: [6.6, 6.4], 2: [8.0, 1.0], 3: [6.0, 0.8], 4: [0.6, 3.4], 5: [2.6, 6.6], 6: [5.4, 8.4] },
+  { 1: [6.4, 6.4], 2: [7.6, 0.8], 3: [1.8, 3.4], 4: [0.9, 1.0], 5: [0.9, 8.4], 6: [2.8, 6.4] }
+];
+// Le 4-2 répète les 3 rotations « passeur avant » du 5-1 (P4, P3, P2), le 2e passeur tenant le rôle du pointu
+RECV['42'] = RECV['51'].slice(3, 6);
+const TARGET = [6.0, 0.7];
+const ATT = {
+  R4F: { s: [0.4, 3.4], h: [1.0, 0.6] },
+  CF: { s: [4.9, 2.9], h: [5.3, 0.5] },
+  PtF: { s: [8.7, 3.4], h: [8.3, 0.6] },
+  R4B: { s: [4.5, 6.3], h: [4.5, 3.6] },
+  PtB: { s: [7.9, 6.3], h: [7.8, 3.6] },
+  LB: [2.6, 5.0],
+  B42: { P: [6.9, 5.0], R4: [4.5, 6.6], L: [2.4, 5.0] }
+};
+const SERVER_POS = [7.6, 10.1];
+const BENCH_POS = [10.05, 4.6];
+
+const isFront = z => z === 2 || z === 3 || z === 4;
+const idAt = (form, k, z) => LINEUP[form][(z - 1 + k) % 6];
+
+// ctx : 'serve' (notre service) ou 'recv'
+function onCourt(form, k, lib, ctx) {
+  const map = {}; let bench = lib ? 'L' : null;
+  for (let z = 1; z <= 6; z++) {
+    const id = idAt(form, k, z);
+    if (lib && ROLE[id] === 'C' && !isFront(z) && !(ctx === 'serve' && z === 1)) { map[z] = 'L'; bench = id; }
+    else map[z] = id;
+  }
+  return { map, bench };
+}
+function frontSetter(form, k) {
+  if (form === '51') return 'P';
+  for (const z of [2, 3, 4]) { const id = idAt(form, k, z); if (ROLE[id] === 'P') return id; }
+}
+function slotOf(id, z) {
+  const r = ROLE[id];
+  if (isFront(z)) return r === 'R4' ? 'FL' : r === 'C' ? 'FM' : 'FR';
+  return r === 'R4' ? 'BM' : (r === 'C' || r === 'L') ? 'BL' : 'BR';
+}
+
+// Renvoie { pos:{id:[x,y]}, zoneOf:{id:z}, bench, server, attacks:[{s,h}] }
+function compute(form, k, lib, phase, opp, rm = '3') {
+  const ctx = (phase === 'serve' || phase === 'def') ? 'serve' : 'recv';
+  const { map, bench } = onCourt(form, k, lib, ctx);
+  const pos = {}, zoneOf = {}, attacks = [];
+  const setter = frontSetter(form, k);
+  let server = null;
+  for (let z = 1; z <= 6; z++) {
+    const id = map[z]; zoneOf[id] = z;
+    const r = ROLE[id];
+    if (phase === 'base') pos[id] = BASE_Z[z];
+    else if (phase === 'recv') pos[id] = rm === '2' ? RECV2[form === '51' ? k : 3 + k % 3][z] : RECV[form][form === '51' ? k : k % 3][z];
+    else if (phase === 'serve') {
+      if (z === 1) { pos[id] = SERVER_POS; server = id; } else pos[id] = SLOT_BASE[slotOf(id, z)];
+    } else if (phase === 'def') pos[id] = DEF[opp][slotOf(id, z)];
+    else if (phase === 'att') {
+      if (id === setter) pos[id] = TARGET;
+      else if (isFront(z)) {
+        let a = r === 'R4' ? ATT.R4F : r === 'C' ? ATT.CF : ATT.PtF;
+        if (form === '51' && k === 0 && r !== 'C') a = r === 'R4' ? ATT.PtF : ATT.R4F; // P1 : pas de croisement
+        pos[id] = a.s; attacks.push({ id, s: a.s, h: a.h });
+      } else if (form === '51') {
+        if (r === 'R4') { pos[id] = ATT.R4B.s; attacks.push({ id, s: ATT.R4B.s, h: ATT.R4B.h, back: true }); }
+        else if (r === 'Pt') { pos[id] = ATT.PtB.s; attacks.push({ id, s: ATT.PtB.s, h: ATT.PtB.h, back: true }); }
+        else pos[id] = ATT.LB;
+      } else {
+        pos[id] = r === 'P' ? ATT.B42.P : r === 'R4' ? ATT.B42.R4 : ATT.B42.L;
+      }
+    }
+  }
+  return { pos, zoneOf, map, bench, server, attacks, setter };
+}
+
+// Chevauchements (règle 7.4) : renvoie liste de paires {a,b,type,ok}
+const PAIRS = [
+  [4, 5, 'fb'], [3, 6, 'fb'], [2, 1, 'fb'],
+  [4, 3, 'lr'], [3, 2, 'lr'], [5, 6, 'lr'], [6, 1, 'lr']
+];
+function checkOverlap(posByZone) {
+  return PAIRS.map(([a, b, t]) => {
+    const A = posByZone[a], B = posByZone[b];
+    const ok = t === 'fb' ? B[1] > A[1] : A[0] < B[0];
+    return { a, b, t, ok };
+  });
+}
+
+// = { LINEUP, ROLE, RECV, compute, checkOverlap, onCourt, idAt, frontSetter, slotOf };
+
+</script>
+<script>
+(() => {
+const NS = 'http://www.w3.org/2000/svg';
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COLORS = { P: ['var(--cP)', 'var(--tP)'], Pt: ['var(--cPt)', 'var(--tPt)'], R4: ['var(--cR4)', 'var(--tR4)'], C: ['var(--cC)', 'var(--tC)'], L: ['var(--cL)', 'var(--tL)'] };
+const LABEL = id => ({ P: 'P', Pt: 'Pt', R4: 'R4', C: 'C', L: 'L' })[ROLE[id]];
+const ROT_NAME_51 = ['P1', 'P6', 'P5', 'P4', 'P3', 'P2'];
+const PH = [
+  { id: 'base', n: 'Rotation', d: 'Ordre de la feuille de position' },
+  { id: 'serve', n: 'Service', d: 'Nous servons' },
+  { id: 'def', n: 'Défense', d: 'Contre + défense basse' },
+  { id: 'recv', n: 'Réception', d: 'Service adverse' },
+  { id: 'att', n: 'Attaque', d: 'Après la réception' }
+];
+const S = { form: '51', lib: true, k: 0, phase: 'recv', opp: '4', follow: 'R4a', rules: false, rm: '3' };
+let prevPos = {};
+let seqTimer = null;
+
+// ---------- Terrain ----------
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); if (parent) parent.appendChild(e); return e; }
+function buildCourt(svg, opts = {}) {
+  svg.innerHTML = '';
+  const defs = el('defs', {}, svg);
+  [['ah', '#ffffff'], ['ahA', '#ffb347'], ['ahO', '#ff6b6b'], ['ahY', '#ffe14d']].forEach(([id, c]) => {
+    const m = el('marker', { id: (opts.pfx || '') + id, viewBox: '0 0 10 10', refX: 7, refY: 5, markerWidth: 4.5, markerHeight: 4.5, orient: 'auto-start-reverse' }, defs);
+    el('path', { d: 'M0 0 L10 5 L0 10 z', fill: c }, m);
+  });
+  const cp = el('clipPath', { id: (opts.pfx || '') + 'cl' }, defs); el('rect', { x: 0, y: 0, width: 9, height: 9 }, cp);
+  el('rect', { x: -1.7, y: -3.4, width: 12.4, height: 15, fill: 'var(--free)' }, svg);
+  el('rect', { x: 0, y: -3.4, width: 9, height: 3.4, fill: 'var(--court-opp)' }, svg);
+  el('rect', { x: 0, y: 0, width: 9, height: 9, fill: 'var(--court)' }, svg);
+  const g = el('g', { stroke: 'var(--cline)', 'stroke-width': .05, fill: 'none' }, svg);
+  el('rect', { x: 0, y: 0, width: 9, height: 9 }, g);
+  el('line', { x1: 0, y1: 3, x2: 9, y2: 3 }, g);
+  el('line', { x1: 0, y1: -3, x2: 9, y2: -3 }, g);
+  el('line', { x1: 0, y1: -3.4, x2: 0, y2: 0 }, g); el('line', { x1: 9, y1: -3.4, x2: 9, y2: 0 }, g);
+  [[0, 9.15, 0, 9.5], [9, 9.15, 9, 9.5]].forEach(([a, b, c, d]) => el('line', { x1: a, y1: b, x2: c, y2: d }, g));
+  // filet
+  el('line', { x1: -0.5, y1: 0, x2: 9.5, y2: 0, stroke: '#111', 'stroke-width': .16 }, svg);
+  el('line', { x1: -0.5, y1: 0, x2: 9.5, y2: 0, stroke: '#fff', 'stroke-width': .05, 'stroke-dasharray': '.08 .08' }, svg);
+  [-0.5, 9.5].forEach(x => el('circle', { cx: x, cy: 0, r: .14, fill: '#111' }, svg));
+  [0, 9].forEach(x => el('line', { x1: x, y1: -.25, x2: x, y2: .25, stroke: '#e33', 'stroke-width': .07 }, svg));
+  if (!opts.mini) {
+    const t = el('text', { x: -1.55, y: -.18, 'font-size': .32, fill: '#fff', opacity: .85, 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 600, 'letter-spacing': '.04' }, svg); t.textContent = 'FILET';
+    const t2 = el('text', { x: 4.5, y: -2.2, 'font-size': .36, fill: '#fff', opacity: .55, 'text-anchor': 'middle', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 600 }, svg); t2.textContent = 'CAMP ADVERSE';
+    const t3 = el('text', { x: 4.5, y: 10.95, 'font-size': .32, fill: '#fff', opacity: .7, 'text-anchor': 'middle', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 600 }, svg); t3.textContent = 'ZONE DE SERVICE';
+    const t4 = el('text', { x: 9.12, y: 2.92, 'font-size': .26, fill: '#fff', opacity: .8, 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif' }, svg); t4.textContent = '3 m';
+  }
+  const zones = el('g', { class: 'zones', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 700, 'font-size': 1.5, fill: '#fff', opacity: 0, 'text-anchor': 'middle', style: 'transition:opacity .4s' }, svg);
+  Object.entries(BASE_Z).forEach(([z, [x, y]]) => { const t = el('text', { x, y: y + (isFront(+z) ? 0.15 : 0.55) + .5 }, zones); t.textContent = z; });
+  const L = {};
+  ['shadow', 'rules', 'trails', 'att', 'opp', 'tok'].forEach(n => L[n] = el('g', { class: 'lyr-' + n }, svg));
+  if (opts.clipShadow !== false) L.shadow.setAttribute('clip-path', `url(#${opts.pfx || ''}cl)`);
+  L.zones = zones;
+  return L;
+}
+function tokenNode(id, r = .42, withBadge = true) {
+  const [bg, fg] = COLORS[ROLE[id]];
+  const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'tok'); g.dataset.id = id;
+  el('circle', { class: 'halo', r: r + .14 }, g);
+  el('circle', { r, fill: bg, stroke: 'rgba(0,0,0,.35)', 'stroke-width': .045 }, g);
+  const lab = LABEL(id);
+  const t = el('text', { y: r * .34, 'text-anchor': 'middle', 'font-size': lab.length > 1 ? r * .95 : r * 1.15, fill: fg }, g); t.textContent = lab;
+  if (IDX[id]) { const s = el('text', { x: r * .62, y: r * .9, 'text-anchor': 'middle', 'font-size': r * .55, fill: fg, opacity: .8 }, g); s.textContent = IDX[id]; }
+  if (withBadge) {
+    const b = el('g', { class: 'zb', transform: `translate(${-r * .78},${-r * .78})` }, g);
+    el('circle', { r: r * .42, fill: '#15222c', stroke: '#fff', 'stroke-width': .03 }, b);
+    const zt = el('text', { y: r * .17, 'text-anchor': 'middle', 'font-size': r * .52, fill: '#fff' }, b);
+  }
+  return g;
+}
+function place(g, x, y) { g.style.transform = `translate(${x}px, ${y}px)`; }
+
+// ---------- Rendu principal ----------
+const svg = $('#court');
+const LY = buildCourt(svg, { pfx: 'm' });
+const toks = {};
+['P', 'Pa', 'Pb', 'Pt', 'R4a', 'R4b', 'Ca', 'Cb', 'L'].forEach(id => { const g = tokenNode(id); g.style.opacity = 0; LY.tok.appendChild(g); toks[id] = g; place(g, 4.5, 4.5); });
+const ball = el('g', { class: 'tok' }, LY.tok);
+el('circle', { r: .2, fill: '#fff', stroke: '#1c2a35', 'stroke-width': .04 }, ball);
+el('path', { d: 'M-.2 0 Q0 -.12 .2 0 M0 -.2 Q.1 0 0 .2', stroke: '#1c2a35', 'stroke-width': .03, fill: 'none' }, ball);
+
+function rotLabel(k) { return S.form === '51' ? ROT_NAME_51[k] : 'R' + (k + 1); }
+function rotSub(k) {
+  if (S.form === '51') return isFront(zoneOfSetter(k)) ? '2 att. avant' : '3 att. avant';
+  return 'P avant en ' + [4, 3, 2][k % 3];
+}
+function zoneOfSetter(k) { const lu = LINEUP['51']; const i = lu.indexOf('P'); return ((i - k) % 6 + 6) % 6 + 1; }
+
+function shadowPoly(hx, hy, b1, b2) {
+  const proj = bx => hx + (bx - hx) * (9.6 - hy) / (0 - hy);
+  return `${b1},0 ${b2},0 ${proj(b2)},9.6 ${proj(b1)},9.6`;
+}
+function arrowPath(a, b, bend = .18) {
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1];
+  return `M${a[0]} ${a[1]} Q${mx - dy * bend} ${my + dx * bend} ${b[0]} ${b[1]}`;
+}
+
+function render(animate = true) {
+  const c = compute(S.form, S.k, S.lib, S.phase, S.opp, S.rm);
+  const onIds = Object.keys(c.pos);
+  // titre / statut
+  $('#title').innerHTML = `${rotLabel(S.k)} <small>${PH.find(p => p.id === S.phase).n}${S.form === '42' ? ' · ' + rotSub(S.k) : ''}</small>`;
+  const st = $('#status');
+  const byZone = {}; for (const id of onIds) byZone[c.zoneOf[id]] = c.pos[id];
+  let checks = null;
+  if (S.phase === 'recv') {
+    checks = checkOverlap(byZone); const bad = checks.filter(x => !x.ok).length;
+    st.className = 'status ' + (bad ? 'ko' : 'ok'); st.textContent = bad ? `✗ ${bad} faute(s) de position` : '✓ Aucune faute de position';
+  } else if (S.phase === 'serve') { st.className = 'status free'; st.textContent = 'Placement libre · règle 2025'; }
+  else if (S.phase === 'base') { st.className = 'status neutral'; st.textContent = 'Au service : ' + NAMES[c.map[1]]; }
+  else { st.className = 'status neutral'; st.textContent = 'Après la frappe : déplacement libre'; }
+  svg.classList.toggle('nozones', S.phase !== 'base' && S.phase !== 'recv' && !S.rules);
+  LY.zones.setAttribute('opacity', S.phase === 'base' ? .22 : 0);
+
+  // jetons
+  for (const id in toks) {
+    const g = toks[id];
+    const on = onIds.includes(id);
+    const isBench = c.bench === id;
+    const inForm = LINEUP[S.form].includes(id) || (id === 'L' && S.lib);
+    if (!inForm) { g.style.opacity = 0; g.style.pointerEvents = 'none'; continue; }
+    g.style.pointerEvents = '';
+    let p = on ? c.pos[id] : BENCH_POS;
+    if (!on && !isBench) { g.style.opacity = 0; continue; }
+    place(g, p[0], p[1]);
+    g.style.opacity = '';
+    g.classList.toggle('out', !on);
+    g.classList.toggle('focus', S.follow === id);
+    g.classList.toggle('dim', S.follow !== 'none' && S.follow !== id && false);
+    const zt = g.querySelector('.zb text'); if (zt) zt.textContent = on ? c.zoneOf[id] : '';
+    g.querySelector('.zb').style.opacity = on ? '' : 0;
+  }
+  // ballon
+  if (S.phase === 'serve') { place(ball, SERVER_POS[0] + .45, SERVER_POS[1] - .4); ball.style.opacity = 1; }
+  else if (S.phase === 'att') { place(ball, TARGET[0], TARGET[1] - .55); ball.style.opacity = 1; }
+  else if (S.phase === 'def' && S.opp !== '0') { const o = OPP[S.opp].hit; place(ball, o[0], o[1] + .45); ball.style.opacity = 1; }
+  else if (S.phase === 'recv') { place(ball, 7.5, -3.2); ball.style.opacity = 1; }
+  else { ball.style.opacity = 0; }
+
+  // traînées de déplacement
+  LY.trails.innerHTML = '';
+  if (animate) {
+    for (const id of onIds) {
+      const a = prevPos[id], b = c.pos[id];
+      if (!a || Math.hypot(a[0] - b[0], a[1] - b[1]) < .6) continue;
+      el('path', { class: 'trail' + (id === S.follow ? ' focus' : ''), d: arrowPath(a, b, .12), 'marker-end': `url(#m${id === S.follow ? 'ahY' : 'ah'})` }, LY.trails);
+    }
+  }
+  prevPos = { ...c.pos };
+
+  // attaques
+  LY.att.innerHTML = '';
+  if (S.phase === 'att' || S.phase === 'recv') {
+    const ring = el('g', { class: 'fade-in', opacity: S.phase === 'recv' ? .55 : 1 }, LY.att);
+    el('circle', { cx: TARGET[0], cy: TARGET[1], r: .62, fill: 'none', stroke: '#ffe14d', 'stroke-width': .05, 'stroke-dasharray': '.1 .08' }, ring);
+    const t = el('text', { x: TARGET[0], y: TARGET[1] + 1.05, 'text-anchor': 'middle', 'font-size': .28, fill: '#ffe14d', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 700 }, ring); t.textContent = 'CIBLE PASSEUR';
+  }
+  if (S.phase === 'att') {
+    for (const a of c.attacks) {
+      const g = el('g', { class: 'fade-in' }, LY.att);
+      el('path', { class: 'attarrow', d: arrowPath(a.s, a.h, .08), 'marker-end': 'url(#mahA)' }, g);
+      if (a.back) { const t = el('text', { x: a.h[0], y: a.h[1] + .55, 'text-anchor': 'middle', 'font-size': .26, fill: '#ffb347', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 700 }, g); t.textContent = ROLE[a.id] === 'R4' ? 'PIPE' : 'ATT. EN 1'; }
+    }
+  }
+  // adversaire + ombre du contre
+  LY.opp.innerHTML = ''; LY.shadow.innerHTML = '';
+  if (S.phase === 'def' && S.opp !== '0') {
+    const o = OPP[S.opp];
+    const blockers = onIds.filter(id => c.pos[id][1] < .7).map(id => c.pos[id][0]);
+    const g = el('g', { class: 'fade-in' }, LY.opp);
+    o.shots.forEach(s => el('path', { d: arrowPath(o.hit, s, 0), stroke: '#ff6b6b', 'stroke-width': .06, 'stroke-dasharray': '.18 .12', fill: 'none', 'marker-end': 'url(#mahO)' }, g));
+    el('circle', { cx: o.hit[0], cy: o.hit[1], r: .42, fill: 'var(--cOpp)', stroke: '#ff6b6b', 'stroke-width': .06 }, g);
+    const t = el('text', { x: o.hit[0], y: o.hit[1] + .14, 'text-anchor': 'middle', 'font-size': .36, fill: '#fff', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 700 }, g); t.textContent = 'ATT';
+  }
+  // lignes de chevauchement
+  LY.rules.innerHTML = '';
+  if (S.rules || S.phase === 'recv') {
+    const ch = checks || checkOverlap(byZone);
+    const showAll = S.rules;
+    ch.forEach(r => {
+      if (!showAll && r.ok) return;
+      const A = byZone[r.a], B = byZone[r.b];
+      el('line', { class: 'ruleline fade-in ' + (r.ok ? 'ok' : 'ko'), x1: A[0], y1: A[1], x2: B[0], y2: B[1] }, LY.rules);
+    });
+  }
+  // légende
+  const ids = [...LINEUP[S.form]]; if (S.lib) ids.push('L');
+  const seen = new Set();
+  $('#legend').innerHTML = ids.filter(id => { const r = ROLE[id]; if (seen.has(r)) return false; seen.add(r); return true; }).map(id => {
+    const [bg, fg] = COLORS[ROLE[id]]; const nm = { P: S.form === '42' ? 'Passeurs (×2)' : 'Passeur', Pt: 'Pointu', R4: 'Réception-attaque (×2)', C: 'Centraux (×2)', L: 'Libéro' }[ROLE[id]];
+    return `<div><span class="dot" style="background:${bg};color:${fg}">${LABEL(id)}</span>${nm}</div>`;
+  }).join('');
+  caption(c);
+  renderControls();
+  renderGrid();
+}
+
+function caption(c) {
+  const fs = c.setter; const zS = c.zoneOf[fs];
+  const txt = {
+    base: `Avants <b>4 · 3 · 2</b>, arrières <b>5 · 6 · 1</b>. Le joueur en <b>1</b> sert : <b>${NAMES[c.map[1]]}</b>.`,
+    serve: `On sert : chacun est déjà à son poste (avant : R4 à gauche, central au milieu, ${S.form === '51' ? (isFront(zS) ? 'passeur' : 'pointu') : 'passeur'} à droite).${c.bench && c.bench !== 'L' ? '' : (S.lib && c.server && ROLE[c.server] === 'C' ? ' <b>Le central sert : libéro hors du terrain.</b>' : '')}`,
+    def: { '0': 'Attente : 3 contreurs au filet, 3 défenseurs. Arrière droit = ' + (S.form === '51' ? 'passeur ou pointu' : 'passeur arrière') + ', arrière gauche = ' + (S.lib ? 'libéro' : 'central') + ', fond = R4.',
+      '4': 'Attaque en 4 adverse : contre à 2 (aile droite + central) sur la ligne. Avant gauche à 3 m (petite diagonale), arrière droit derrière le contre (feintes), arrière gauche en grande diagonale, le fond prend les déviations.',
+      '3': 'Attaque au centre : contre du central, les ailiers reculent pour les feintes.',
+      '2': 'Attaque en 2 adverse : contre à 2 (aile gauche + central) sur la ligne. Avant droit à 3 m, arrière gauche derrière le contre, arrière droit en grande diagonale, le fond prend les déviations.' }[S.opp],
+    recv: (S.rm === '2' ? `Réception à 2 (pro, service facile) : <b>${S.lib ? 'libéro' : 'central arrière'} + R4 arrière</b>, le R4 avant sort de la ligne pour attaquer. ` : `Réception à 3 : <b>les 2 R4 + ${S.lib ? 'libéro' : 'central arrière'}</b>. `) + `${S.form === '51' && S.k === 0 ? 'P1 : le R4 avant reçoit à droite et attaquera en 2, le pointu attaquera en 4 (pas de croisement).' : S.form === '51' ? (isFront(zS) ? 'Passeur avant, déjà au filet.' : 'Passeur arrière caché, il pénètre à la frappe.') : 'Le passeur avant reste au filet, le passeur arrière se cache comme un pointu.'}${(S.form === '42' && S.k % 3 === 0) || (S.form === '51' && S.k === 3) ? ' Passeur et central collés à gauche : le R4 avant (zone 2) ' + (S.rm === '2' ? 'se place' : 'peut recevoir') + ' à gauche.' : ''}`,
+    att: S.form === '51' ? (S.k === 0 ? 'P1 : R4 en 2, pointu en 4, central au centre + pipe. On permute après le premier échange.' : isFront(zS) ? 'Passeur avant : 2 attaquants avant (R4, central) + 2 arrières (pipe, attaque en 1).' : 'Passeur arrière : 3 attaquants avant + pipe du R4 arrière.') : 'Le passeur avant passe. 2 attaquants avant : R4 et central.'
+  }[S.phase];
+  $('#caption').innerHTML = `<span>${txt}</span>`;
+}
+
+// ---------- Commandes ----------
+function renderControls() {
+  $('#f51').setAttribute('aria-pressed', S.form === '51'); $('#f42').setAttribute('aria-pressed', S.form === '42');
+  $('#libChk').checked = S.lib;
+  $('#rulesChk').checked = S.rules;
+  $('#rots').innerHTML = [0, 1, 2, 3, 4, 5].map(k => `<button data-k="${k}" aria-pressed="${k === S.k}"><b>${rotLabel(k)}</b><small>${rotSub(k)}</small></button>`).join('');
+  $('#phases').innerHTML = PH.map((p, i) => `<button data-p="${p.id}" aria-pressed="${p.id === S.phase}"><i>${i + 1}</i><span><b>${p.n}</b><small>${p.d}</small></span></button>`).join('');
+  $('#oppGroup').style.display = S.phase === 'def' ? '' : 'none';
+  document.querySelectorAll('#oppSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.o === S.opp));
+  document.querySelectorAll('#rmSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.r === S.rm));
+  $('#rmGroup').style.display = (S.phase === 'recv' || S.phase === 'att') ? '' : 'none';
+  const ids = [...LINEUP[S.form]]; if (S.lib) ids.push('L');
+  if (S.follow !== 'none' && !ids.includes(S.follow)) S.follow = 'R4a';
+  const sel = $('#followSel');
+  sel.innerHTML = '<option value="none">Personne</option>' + ids.map(id => `<option value="${id}" ${id === S.follow ? 'selected' : ''}>${NAMES[id]}</option>`).join('');
+  if (S.follow === 'none') sel.value = 'none';
+}
+
+$('#formSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stopSeq(); S.form = b.dataset.f; render(); });
+$('#libChk').addEventListener('change', e => { S.lib = e.target.checked; render(); });
+$('#rulesChk').addEventListener('change', e => { S.rules = e.target.checked; render(false); });
+$('#rots').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stopSeq(); S.k = +b.dataset.k; render(); });
+$('#phases').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stopSeq(); S.phase = b.dataset.p; render(); });
+$('#rmSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.rm = b.dataset.r; render(); });
+$('#oppSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.opp = b.dataset.o; render(); });
+$('#followSel').addEventListener('change', e => { S.follow = e.target.value; render(false); newQuestion(); });
+$('#turnBtn').addEventListener('click', () => { stopSeq(); S.phase = 'base'; render(false); setTimeout(() => { S.k = (S.k + 1) % 6; render(); }, reduce ? 0 : 350); });
+document.addEventListener('keydown', e => {
+  if (e.target.closest('select,input')) return;
+  if (e.key === 'ArrowRight') { S.k = (S.k + 1) % 6; render(); }
+  else if (e.key === 'ArrowLeft') { S.k = (S.k + 5) % 6; render(); }
+  else if (/^[1-5]$/.test(e.key)) { S.phase = PH[+e.key - 1].id; render(); }
+});
+
+// ---------- Séquences ----------
+const SEQ = {
+  serve: [['base', null, 'Rotation'], ['serve', null, 'Service'], ['def', '0', 'Attente'], ['def', '4', 'Défense sur leur 4']],
+  recv: [['base', null, 'Rotation'], ['recv', null, 'Réception'], ['att', null, 'Attaque'], ['def', '0', 'Repli défensif']]
+};
+function stopSeq() { if (seqTimer) { clearTimeout(seqTimer); seqTimer = null; } $('#steps').hidden = true; $('#seqServe').classList.remove('on'); $('#seqRecv').classList.remove('on'); }
+function runSeq(name) {
+  const wasOn = $('#seq' + (name === 'serve' ? 'Serve' : 'Recv')).classList.contains('on');
+  stopSeq(); if (wasOn) return;
+  const btn = $('#seq' + (name === 'serve' ? 'Serve' : 'Recv')); btn.classList.add('on');
+  const steps = SEQ[name]; const box = $('#steps'); box.hidden = false;
+  let i = 0;
+  const step = () => {
+    const [ph, o, lab] = steps[i]; S.phase = ph; if (o) S.opp = o; render();
+    box.innerHTML = steps.map((s, j) => `<span class="${j === i ? 'cur' : ''}">${j + 1} · ${s[2]}</span>`).join('');
+    i++;
+    if (i < steps.length) seqTimer = setTimeout(step, reduce ? 2600 : 2100);
+    else seqTimer = setTimeout(() => { btn.classList.remove('on'); seqTimer = null; }, 2100);
+  };
+  step();
+}
+$('#seqServe').addEventListener('click', () => runSeq('serve'));
+$('#seqRecv').addEventListener('click', () => runSeq('recv'));
+
+// ---------- Mini grille ----------
+function miniSVG(k) {
+  const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '-1.2 -1.6 11.4 13'); s.setAttribute('aria-hidden', 'true');
+  const L = buildCourt(s, { mini: true, pfx: 'g' + k });
+  const c = compute(S.form, k, S.lib, S.phase, S.opp, S.rm);
+  const byZone = {};
+  for (const id in c.pos) {
+    byZone[c.zoneOf[id]] = c.pos[id];
+    const g = tokenNode(id, .5, false); place(g, c.pos[id][0], c.pos[id][1]); g.style.transition = 'none';
+    if (id === S.follow) g.classList.add('focus');
+    L.tok.appendChild(g);
+  }
+  if (S.phase === 'base') L.zones.setAttribute('opacity', .2);
+  return { s, ok: S.phase !== 'recv' || checkOverlap(byZone).every(x => x.ok) };
+}
+function renderGrid() {
+  const box = $('#grid6'); box.innerHTML = '';
+  $('#gridSub').textContent = `${S.form === '51' ? '5-1' : '4-2'} · ${S.lib ? 'avec' : 'sans'} libéro · ${PH.find(p => p.id === S.phase).n}${S.phase === 'recv' ? ' à ' + S.rm : ''}`;
+  for (let k = 0; k < 6; k++) {
+    const b = document.createElement('button'); b.className = 'mini'; b.setAttribute('aria-pressed', k === S.k); b.setAttribute('aria-label', 'Ouvrir ' + rotLabel(k));
+    const { s, ok } = miniSVG(k);
+    b.innerHTML = `<div class="mt"><b>${rotLabel(k)}</b><span>${rotSub(k)}${S.phase === 'recv' ? (ok ? ' · ✓' : ' · ✗') : ''}</span></div>`;
+    b.appendChild(s);
+    b.addEventListener('click', () => { stopSeq(); S.k = k; render(); window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); });
+    box.appendChild(b);
+  }
+}
+
+// ---------- Entraînement ----------
+const qsvg = $('#qcourt');
+const QL = buildCourt(qsvg, { pfx: 'q' });
+const Q = { mode: 'place', streak: 0, good: 0, total: 0, best: 0, cur: null, answered: false };
+try { Q.best = +localStorage.getItem('vb-best') || 0; } catch (e) { }
+const rnd = n => Math.floor(Math.random() * n);
+function qScore() { $('#qStreak').textContent = Q.streak; $('#qGood').textContent = Q.good + '/' + Q.total; $('#qBest').textContent = Q.best; }
+function qResult(ok) {
+  Q.total++; if (ok) { Q.good++; Q.streak++; if (Q.streak > Q.best) { Q.best = Q.streak; try { localStorage.setItem('vb-best', Q.best); } catch (e) { } } } else Q.streak = 0;
+  qScore();
+}
+function svgPoint(svgEl, evt) { const p = svgEl.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY; return p.matrixTransform(svgEl.getScreenCTM().inverse()); }
+
+function newQuestion() {
+  Q.answered = false;
+  QL.tok.innerHTML = ''; QL.att.innerHTML = ''; QL.rules.innerHTML = ''; QL.opp.innerHTML = ''; QL.shadow.innerHTML = ''; QL.trails.innerHTML = '';
+  $('#qfb').className = 'feedback';
+  if (Q.mode === 'place') placeQuestion(); else faultQuestion();
+}
+function placeQuestion() {
+  const phases = ['recv', 'recv', 'serve', 'def', 'att'];
+  let k, ph, c, target, tries = 0;
+  do {
+    k = rnd(6); ph = phases[rnd(phases.length)];
+    c = compute(S.form, k, S.lib, ph, '4', S.rm);
+    const ids = Object.keys(c.pos);
+    target = S.follow !== 'none' && ids.includes(S.follow) ? S.follow : ids[rnd(ids.length)];
+    tries++;
+  } while ((ph === 'serve' && c.zoneOf[target] === 1 || !c.pos[target]) && tries < 40);
+  Q.cur = { k, ph, c, target };
+  const phName = { recv: 'Réception', serve: 'Notre service', def: 'Défense sur attaque en 4 adverse', att: 'Attaque (position d\'élan)' }[ph];
+  $('#qprompt').innerHTML = `${S.form === '51' ? ROT_NAME_51[k] : 'R' + (k + 1)} · ${phName}<br>Où se place <em>${NAMES[target]}</em> ?`;
+  $('#qfb').textContent = 'Glisse le jeton entouré à sa place, puis valide.';
+  for (const id in c.pos) {
+    const g = tokenNode(id); QL.tok.appendChild(g);
+    g.querySelector('.zb text').textContent = c.zoneOf[id];
+    if (id === target) {
+      const z = c.zoneOf[id]; const start = BASE_Z[z]; place(g, start[0], start[1]);
+      g.classList.add('focus', 'dragme'); g.dataset.x = start[0]; g.dataset.y = start[1];
+      dragify(g);
+    } else { place(g, c.pos[id][0], c.pos[id][1]); g.style.opacity = .8; }
+  }
+  qsvg.classList.remove('nozones');
+  if (ph === 'def') { const o = OPP['4']; const g = el('g', {}, QL.opp); el('circle', { cx: o.hit[0], cy: o.hit[1], r: .42, fill: 'var(--cOpp)', stroke: '#ff6b6b', 'stroke-width': .06 }, g); const t = el('text', { x: o.hit[0], y: o.hit[1] + .14, 'text-anchor': 'middle', 'font-size': .36, fill: '#fff', 'font-family': 'Barlow Condensed, Arial Narrow, sans-serif', 'font-weight': 700 }, g); t.textContent = 'ATT'; }
+  $('#qbtns').innerHTML = '<button class="btn primary" id="qVal">Valider</button><button class="btn" id="qNext">Question suivante</button>';
+  $('#qVal').onclick = checkPlace; $('#qNext').onclick = newQuestion;
+}
+function dragify(g) {
+  let drag = false;
+  g.addEventListener('pointerdown', e => { if (Q.answered) return; drag = true; g.classList.add('dragging'); g.setPointerCapture(e.pointerId); e.preventDefault(); });
+  g.addEventListener('pointermove', e => { if (!drag) return; const p = svgPoint(qsvg, e); const x = Math.max(-1.2, Math.min(10.2, p.x)), y = Math.max(-.2, Math.min(10.6, p.y)); g.dataset.x = x; g.dataset.y = y; place(g, x, y); });
+  const up = () => { drag = false; g.classList.remove('dragging'); };
+  g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+}
+function checkPlace() {
+  if (Q.answered) return; Q.answered = true;
+  const { c, target } = Q.cur; const g = QL.tok.querySelector(`[data-id="${target}"]`);
+  const me = [+g.dataset.x, +g.dataset.y], good = c.pos[target];
+  const d = Math.hypot(me[0] - good[0], me[1] - good[1]);
+  const ok = d <= 1.4;
+  const gh = el('circle', { cx: good[0], cy: good[1], r: .5, fill: 'none', stroke: ok ? '#7dffb9' : '#ffe14d', 'stroke-width': .08, 'stroke-dasharray': '.12 .08' }, QL.att);
+  if (!ok) el('path', { class: 'trail focus', d: arrowPath(me, good, .1), 'marker-end': 'url(#qahY)' }, QL.att);
+  // légalité si réception
+  let extra = '';
+  if (Q.cur.ph === 'recv') {
+    const byZone = {}; for (const id in c.pos) byZone[c.zoneOf[id]] = id === target ? me : c.pos[id];
+    const bad = checkOverlap(byZone).filter(r => !r.ok);
+    bad.forEach(r => el('line', { class: 'ruleline ko', x1: byZone[r.a][0], y1: byZone[r.a][1], x2: byZone[r.b][0], y2: byZone[r.b][1] }, QL.rules));
+    if (bad.length) extra = ` Et ta position crée une <b>faute de position</b> (${bad.map(r => r.a + '↔' + r.b).join(', ')}).`;
+  }
+  $('#qfb').className = 'feedback ' + (ok ? 'ok' : 'ko');
+  $('#qfb').innerHTML = (ok ? `Bien placé (à ${d.toFixed(1)} m).` : `Raté de ${d.toFixed(1)} m : la bonne place est entourée.`) + extra;
+  qResult(ok && !extra);
+}
+function faultQuestion() {
+  const form = Math.random() < .5 ? '51' : '42', lib = Math.random() < .6, k = rnd(6);
+  const c = compute(form, k, lib, 'recv', '4');
+  const byZone = {}, idByZone = {}; for (const id in c.pos) { byZone[c.zoneOf[id]] = [...c.pos[id]]; idByZone[c.zoneOf[id]] = id; }
+  let fault = Math.random() < .55;
+  if (fault) {
+    const [a, b] = PAIRS[rnd(PAIRS.length)];
+    const t = byZone[a]; byZone[a] = byZone[b]; byZone[b] = t;
+    if (checkOverlap(byZone).every(r => r.ok)) fault = false;
+  }
+  Q.cur = { byZone, idByZone, fault };
+  $('#qprompt').innerHTML = `${form} · ${lib ? 'avec' : 'sans'} libéro · ${form === '51' ? ROT_NAME_51[k] : 'R' + (k + 1)}<br>Réception : <em>faute de position ?</em>`;
+  $('#qfb').textContent = 'Regarde les petits chiffres (zones de rotation).';
+  for (const z in byZone) { const g = tokenNode(idByZone[z]); g.querySelector('.zb text').textContent = z; place(g, byZone[z][0], byZone[z][1]); QL.tok.appendChild(g); }
+  qsvg.classList.remove('nozones');
+  $('#qbtns').innerHTML = '<button class="btn" id="qLegal">Position légale</button><button class="btn" id="qFaute">Faute de position</button><button class="btn primary" id="qNext" style="grid-column:1 / -1">Question suivante</button>';
+  $('#qLegal').onclick = () => answerFault(false); $('#qFaute').onclick = () => answerFault(true); $('#qNext').onclick = newQuestion;
+}
+function answerFault(said) {
+  if (Q.answered) return; Q.answered = true;
+  const { byZone, fault } = Q.cur; const ok = said === fault;
+  const ch = checkOverlap(byZone);
+  ch.forEach(r => el('line', { class: 'ruleline ' + (r.ok ? 'ok' : 'ko'), x1: byZone[r.a][0], y1: byZone[r.a][1], x2: byZone[r.b][0], y2: byZone[r.b][1] }, QL.rules));
+  const bad = ch.filter(r => !r.ok);
+  const why = bad.map(r => r.t === 'fb' ? `le ${r.b} doit être derrière le ${r.a}` : `le ${r.a} doit être à gauche du ${r.b}`).join(' ; ');
+  $('#qfb').className = 'feedback ' + (ok ? 'ok' : 'ko');
+  $('#qfb').innerHTML = (ok ? 'Exact. ' : 'Non. ') + (fault ? `Faute : ${why}.` : 'Tout est en ordre (liens verts).');
+  qResult(ok);
+}
+$('#qmodeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; Q.mode = b.dataset.q; document.querySelectorAll('#qmodeSeg button').forEach(x => x.setAttribute('aria-pressed', x === b)); newQuestion(); });
+
+// ---------- Démarrage ----------
+render(false);
+qScore(); newQuestion();
+})();
+</script>
+</body>
+</html>
